@@ -6,7 +6,7 @@
             {{ name }}
         </div>
         <div v-show="show" class="list">
-            <div class="list-data" v-for="(item, index) in nodeArr" :key="index">{{ item }}</div>
+            <div class="list-data" v-for="(item, index) in nodeArr" :key="index" @click="clickData(item)">{{ item.nickname }}</div>
         </div>
     </div>
 </template>
@@ -17,9 +17,22 @@ export default {
     props: ['name','nodeArr'],
     data() {
         return {
-            show: false
+            show: false,
             // name: '联系人',
-            // nodeArr: ['张三','李四','王麻子']
+            // nodeArr: [
+            //     {
+            //         nickname: '张三',
+            //         uid: '123321'
+            //     },
+            //     {
+            //         nickname: '李四',
+            //         uid: '123321'
+            //     },
+            //     {
+            //         nickname: '王麻子',
+            //         uid: '123321'
+            //     }
+            // ]
         }
     },
     methods: {
@@ -29,6 +42,9 @@ export default {
             }else{
                 this.show = true;
             }
+        },
+        clickData(chatObj){
+            this.$emit('chat',chatObj)
         }
     },
 }
@@ -40,7 +56,6 @@ export default {
         // background: skyblue;
         display: flex;
         flex-direction: column;
-        margin-bottom: 20px;
         // color: rgba(255, 255, 255, 0.74);
         .title{
             margin-bottom: 20px;

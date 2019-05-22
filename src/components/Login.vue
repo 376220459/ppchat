@@ -17,8 +17,9 @@ export default {
     return {
       loginStyle: '',
       containerStyle: '',
-      nickname: '',
-      password: ''
+      nickname: '王少华',
+      password: '376220459',
+      uid: ''
     }
   },
   methods: {
@@ -37,16 +38,42 @@ export default {
             console.log(res.data);
             if(res.data.status === 1){
                 if(res.data.message === '密码正确'){
-                  this.$message({
-                    message: '登录成功',
-                    type: 'success',
-                    duration: 1000
-                  });
-                  setTimeout(() => {
-                    this.$router.push({
-                      path: '/chat'
-                    })
-                  }, 1000);
+                  this.uid = res.data.uid;
+                  let ws = new WebSocket('ws://localhost:5000');
+                  ws.onmessage = e=>{
+                    // console.log(e.data);
+                    ws.close();
+                    if(e.data === '未登录'){
+                      this.$message({
+                        message: '登录成功',
+                        type: 'success',
+                        duration: 1000
+                      });
+                      setTimeout(() => {
+                        this.$router.push({
+                          name: 'Chat',
+                          params: {
+                            nickname: this.nickname,
+                            uid: this.uid
+                          }
+                        })
+                      }, 1000);
+                    }else{
+                      this.$message({
+                        message: '此账号已经登录啦，试试登录其他账号',
+                        type: 'warning',
+                        duration: 1000
+                      });
+                    }
+                  }
+                  ws.onopen = ()=>{
+                    if(ws.readyState === 1){
+                      ws.send(JSON.stringify({
+                        type: 0,
+                        uid: this.uid
+                      }));
+                    }
+                  }
                 }else if(res.data.message === '密码错误'){
                   this.$message.warning('UserId 或 PassWord输入错误，三思而后行');
                 }else{

@@ -54,7 +54,8 @@ app
                     res.json({
                         status: 1,
                         message: '密码正确',
-                        uid: results[0].uid
+                        uid: results[0].uid,
+                        headimg: results[0].headimg
                     })
                 }else{
                     res.json({
@@ -128,7 +129,7 @@ app
 })
 .post('/api/addFriend',(req,res)=>{
     let nickname = req.body.nickname;
-    const sqlStr = 'select uid from user where nickname = ?';
+    const sqlStr = 'select * from user where nickname = ?';
     sql.query(sqlStr,nickname,(err,results)=>{
         if(err){
             res.json({
@@ -144,6 +145,7 @@ app
             }else{
                 let self = req.body.self;
                 let uid = results[0].uid;
+                let headimg = results[0].headimg;
                 let str;
                 let friends;
                 const sqlStr1 = 'select friends from relationship where owner = ?';
@@ -163,9 +165,9 @@ app
                         }else{
                             if(results[0].friends){
                                 friends = results[0].friends;
-                                str = friends +  ',' + nickname + '-' + uid;
+                                str = friends +  ',' + nickname + '-' + uid + '-' + headimg;
                             }else{
-                                str = nickname + '-' + uid;
+                                str = nickname + '-' + uid + '-' + headimg;
                             }
                             
                             // console.log(friends);
@@ -187,7 +189,8 @@ app
                                         res.json({
                                             status: 1,
                                             message: '添加成功',
-                                            friendUid: uid
+                                            friendUid: uid,
+                                            headimg: headimg
                                         })
                                     }
                                 }
@@ -380,7 +383,7 @@ app
                     message: '查询失败'
                 })
             }else{
-                if(results[0].friends.includes(nickname)){
+                if(results[0].friends && results[0].friends.includes(nickname)){
                     res.json({
                         status: 1,
                         message: '对方已添加自己',
@@ -413,7 +416,6 @@ app
 */
 
 let users = [];
-let user;
 let bridge = {};
 let msgs = {};
 let allGroups = {}
@@ -426,15 +428,12 @@ function broadcast(obj){
             }
         });
         return;
-        // user.conn.sendText(JSON.stringify(obj));
-        // obj.conn.sendText(JSON.stringify(obj));
     }else if(obj.type === 3){
         server.connections.forEach(conn=>{
             if(obj.bridge[0] === conn.path.slice(6)){
                 conn.sendText(JSON.stringify(obj));
             }
         });
-        // user.conn.sendText(JSON.stringify(obj));
         if(msgs[obj.bridge[1] + '-' + obj.bridge[0]]){
             msgs[obj.bridge[1] + '-' + obj.bridge[0]].forEach(e=>{
                 server.connections.forEach(conn=>{
@@ -442,25 +441,11 @@ function broadcast(obj){
                         conn.sendText(JSON.stringify(e));
                     }
                 });
-                // user.conn.sendText(JSON.stringify(e));
             })
             msgs[obj.bridge[1] + '-' + obj.bridge[0]] = undefined;
         }
         return;
     }else if(obj.type === 4){
-        // server.connections.forEach(conn=>{
-        //     conn.sendText(JSON.stringify(obj));
-        // })
-        // obj.bridge.forEach(e=>{
-        //     if(bridge[obj.bridge[0] + '-' + obj.bridge[1]][e]){
-        //         console.log(e)
-        //         bridge[obj.bridge[0] + '-' + obj.bridge[1]][e].sendText(JSON.stringify(obj))
-        //     }
-        //     if(bridge[obj.bridge[1] + '-' + obj.bridge[0]][e]){
-        //         console.log(e)
-        //         bridge[obj.bridge[1] + '-' + obj.bridge[0]][e].sendText(JSON.stringify(obj))
-        //     }
-        // });
         bridge[obj.bridge[0] + '-' + obj.bridge[1]][obj.bridge[0]].sendText(JSON.stringify(obj))
         if(!bridge[obj.bridge[1] + '-' + obj.bridge[0]]){
             if(!msgs[obj.bridge[0] + '-' + obj.bridge[1]]){
@@ -471,13 +456,6 @@ function broadcast(obj){
             bridge[obj.bridge[1] + '-' + obj.bridge[0]][obj.bridge[1]].sendText(JSON.stringify(obj))
         }
         return;
-        // server.connections.forEach(conn=>{
-        //     // console.log(conn.path.slice(6))
-        //     if(obj.bridge.indexOf(conn.path.slice(6)) !== -1){
-        //         conn.sendText(JSON.stringify(obj));
-        //     }
-        // });
-        // return;
     }else if(obj.type === 5){
         let uid = obj.uid;
         let gid = obj.group.gid;
@@ -530,10 +508,6 @@ let server = ws.createServer(conn=>{
     .on('text',obj=>{
         obj = JSON.parse(obj);
         if(obj.type === 1){
-            // user = {
-            //     nickname: obj.nickname,
-            //     uid: obj.uid
-            // };
             // users.push(obj.nickname);
             // console.log(server.connections.length);
             let onlineCount = server.connections.length;
@@ -554,8 +528,7 @@ let server = ws.createServer(conn=>{
                     });
                 }else{
                     if(results.length){
-                        console.log('成功返回关系表')
-                        // console.log(results[0])
+                        // console.log('成功返回关系表')
                         let groups,groups0,friends0,friends;
                         if(results[0].mygroups){
                             groups0 = results[0].mygroups.split(',').map(e=>e.split('-'))
@@ -573,6 +546,7 @@ let server = ws.createServer(conn=>{
                                 friends[index] = {};
                                 friends[index].nickname = item[0];
                                 friends[index].uid = item[1];
+                                friends[index].headimg = item[2];
                             });
                         }
                         let data = {
@@ -642,14 +616,13 @@ let server = ws.createServer(conn=>{
                 bridge: obj.bridge
             });
         }else if(obj.type === 4){
-            // server.connections.forEach(conn=>console.log(conn.path.slice(6)+'---'))
             broadcast({
                 type: 4,
                 date: getDate(),
-                // msg: obj.nickname + '：' + obj.msg,
                 msg: obj.msg,
                 nickname: obj.nickname,
                 uid: obj.uid + '',
+                headimg: obj.headimg,
                 bridge: obj.bridge
             });
         }else if(obj.type === 0){
@@ -688,7 +661,7 @@ let server = ws.createServer(conn=>{
                                 allGroups[gid][item[1] + ''] = [];
                             });
                         }
-                        console.log('群内成员建立连接');
+                        // console.log('群内成员建立连接');
                         broadcast({
                             type: 5,
                             msg: '群内成员建立连接',
@@ -718,6 +691,7 @@ let server = ws.createServer(conn=>{
                 msg: obj.msg,
                 nickname: obj.nickname,
                 uid: obj.uid + '',
+                headimg: obj.headimg,
                 group: obj.group,
                 gid: obj.gid
             });

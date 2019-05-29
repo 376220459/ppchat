@@ -14,7 +14,11 @@
     </div>
     <div class="container">
       <div class="chat-list">
-        <tree name='联系人' :node-arr='friends' @chat='chat'></tree>
+        <div class="self-inf">
+          <img :src="headimg" alt="">
+          <span>{{ nickname }}</span>
+        </div>
+        <tree name='联系人' :node-arr='friends' @chat='chat' :headImgClasses='headImgClasses' :blink='blink'></tree>
         <tree name='群' :node-arr='groups' @chat='chatGroup'></tree>
         <i class="add-button iconfont icon-add" @click.stop="changeAddList"></i>
         <div class="add-list" v-if="showAddList" @click.stop>
@@ -31,11 +35,12 @@
             <div ref="message" class="chat-message" v-for="(item, index) in messages[otheruid]" :key="index">
               <div class="msg msg-self" v-if="item.nickname !== otherNickname">
                 <span>{{ item.msg }}</span>
-                <img src="../../static/headImg/self.jpg" alt="">
+                <img :src="item.headimg" alt="">
               </div>
               <div class="msg msg-other" v-else>
-                <img src="../../static/headImg/niu.jpg" alt="">
-                <span>{{ item.msg }}</span>
+                <img :src="item.headimg" alt="">
+                <span class='span-inf'>{{ item.nickname }}</span>
+                <span class='span-msg'>{{ item.msg }}</span>
               </div>
             </div>
           </div>
@@ -44,11 +49,12 @@
             <div class="chat-message" v-for="(item, index) in messages[gid]" :key="index">
               <div class="msg msg-self" v-if="item.nickname == nickname">
                 <span>{{ item.msg }}</span>
-                <img src="../../static/headImg/self.jpg" alt="">
+                <img :src="item.headimg" alt="">
               </div>
               <div class="msg msg-other" v-else>
-                <img src="../../static/headImg/niu.jpg" alt="">
-                <span>{{ item.msg }}</span>
+                <img :src="item.headimg" alt="">
+                <span class='span-inf'>{{ item.nickname }}</span>
+                <span class='span-msg'>{{ item.msg }}</span>
               </div>
             </div>
           </div>
@@ -75,8 +81,11 @@ export default {
   components: {tree},
   data() {
     return {
+      headImgClasses: [],
+      blink: '',
       nickname: '',
       uid: '',
+      headimg: '',
       friends: [],
       groups: [],
       fontColor: '#000000',
@@ -97,6 +106,18 @@ export default {
     }
   },
   methods: {
+    throttle(func,wait){
+      let pre = 0;
+      return function(){
+        let now = Date.now();
+        if(now - pre > wait){
+          func();
+          pre = now;
+        }else{
+          this.$message.warning('点那么快干嘛~');
+        }
+      }
+    },
     changeAddList(){
       if(!this.showAddList){
         this.showAddList = true;
@@ -153,9 +174,11 @@ export default {
             if(res.data.status === 1){
                 if(res.data.message === '添加成功'){
                   let friendUid = res.data.friendUid;
+                  let headimg = res.data.headimg;
                   this.friends.push({
                     nickname: name,
-                    uid: friendUid
+                    uid: friendUid,
+                    headimg: headimg
                   });
                   this.$set(this.messages,friendUid,[]);
 
@@ -337,6 +360,7 @@ export default {
             msg: this.msg,
             nickname: this.nickname,
             uid: this.uid,
+            headimg: this.headimg,
             bridge: [this.uid + '',this.otheruid + '']
           }
           this.msg = ``;
@@ -369,6 +393,7 @@ export default {
             msg: this.msg,
             nickname: this.nickname,
             uid: this.uid + '',
+            headimg: this.headimg,
             group: this.group,
             gid: this.gid + ''
           }
@@ -385,8 +410,22 @@ export default {
         this.group = '';
         this.gid = '';
       }
+      let friends = this.friends.map(e=>e.nickname);
+      let index = friends.indexOf(otherObj.nickname);
+      if(this.headImgClasses[index] === 'bounce'){
+        this.$set(this.headImgClasses,index,'');
+      }
+      if(!this.headImgClasses.includes('bounce')){
+        this.blink = '';
+      }
       this.otherNickname = otherObj.nickname;
       this.otheruid = otherObj.uid + '';
+      setTimeout(() => {
+        let msgs = document.getElementsByClassName('msg');
+        if(msgs[msgs.length - 1]){
+          msgs[msgs.length - 1].scrollIntoView();
+        }
+      }, 0);
     },
     chatGroup(groupObj){
       // console.log(otherNickname.nickname)
@@ -396,6 +435,12 @@ export default {
       }
       this.group = groupObj.nickname;
       this.gid = groupObj.gid + '';
+      setTimeout(() => {
+        let msgs = document.getElementsByClassName('msg');
+        if(msgs[msgs.length - 1]){
+          msgs[msgs.length - 1].scrollIntoView();
+        }
+      }, 0);
     }
   },
   created() {
@@ -417,12 +462,15 @@ export default {
     }
     let nickname = this.$route.params.nickname;
     let uid = this.$route.params.uid;
+    let headimg = this.$route.params.headimg;
     this.nickname = nickname;
     this.uid = uid;
+    this.headimg = headimg;
     let userInf = {
       type: 1,
       nickname: this.nickname,
-      uid: this.uid + ''
+      uid: this.uid + '',
+      headimg: this.headimg
     }
     this.ws = new WebSocket('ws://localhost:5000?uid=' + this.uid);
     this.ws.onmessage = e=>{
@@ -478,15 +526,25 @@ export default {
           }
         }
       }else if(obj.type === 4){
-        if(this.otheruid){
-          this.messages[this.otheruid].push({
+        if(this.otherNickname !== obj.nickname && obj.nickname !== this.nickname){
+          let friends = this.friends.map(e=>e.nickname);
+          let index = friends.indexOf(obj.nickname);
+          this.$set(this.headImgClasses,index,'bounce');
+          if(this.blink === ''){
+            this.blink = 'blink';
+          }
+        }
+        if(obj.nickname === this.nickname){
+          this.messages[obj.bridge[1]].push({
             nickname: obj.nickname,
-            msg: obj.msg
+            msg: obj.msg,
+            headimg: obj.headimg
           });
         }else{
           this.messages[obj.uid].push({
             nickname: obj.nickname,
-            msg: obj.msg
+            msg: obj.msg,
+            headimg: obj.headimg
           });
         }
         setTimeout(() => {
@@ -494,7 +552,6 @@ export default {
           if(msgs[msgs.length - 1]){
             msgs[msgs.length - 1].scrollIntoView();
           }
-          // msgs[msgs.length - 1].scrollIntoView();
         }, 0);
       }else if(obj.type === 5){
         // console.log('收到回复')
@@ -507,6 +564,7 @@ export default {
           msg: obj.msg,
           nickname: obj.nickname,
           uid: obj.uid,
+          headimg: obj.headimg,
           group: obj.group,
           gid: obj.gid
         });
@@ -620,9 +678,28 @@ export default {
       .chat-list{
         width: 400px;
         padding: 60px;
-        background: url(../../static/img/list-back.jpg);
-        background-size: cover;
+        padding-top: 120px;
+        // background: url(../../static/img/list-back.jpg);
+        // background-size: cover;
+        background: #D8D8D8;
         position: relative;
+        .self-inf{
+          display: flex;
+          align-items: center;
+          position: absolute;
+          left: 25px;
+          top: 20px;
+          cursor: pointer;
+          img{
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin-right: 15px;
+          }
+          span{
+            font-size: 30px;
+          }
+        }
         .add-button{
           position: absolute;
           bottom: 10px;
@@ -713,6 +790,9 @@ export default {
                   margin-top: 10px;
                   text-align: left;
                   white-space: pre;
+                  position: relative;
+                  top: 10px;
+                  user-select: text;
                 }
               }
               .msg-self{
@@ -726,7 +806,22 @@ export default {
               .msg-other{
                 justify-content: flex-start;
                 align-self: flex-start;
-                span{
+                position: relative;
+                .span-inf{
+                  box-sizing: border-box;
+                  border: none;
+                  border-radius: 0;
+                  padding: 0;
+                  margin: 0;
+                  white-space: nowrap;
+                  overflow: auto;
+                  position: absolute;
+                  left: 70px;
+                  top: 0;
+                  font-size: 15px;
+                  color: #aaaaaa;
+                }
+                .span-msg{
                   background: pink;
                   color: white;
                 }

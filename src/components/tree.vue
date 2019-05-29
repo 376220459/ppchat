@@ -1,12 +1,15 @@
 <template>
     <div class="tree">
-        <div class="title" @click="changeList">
+        <div :class="title + blink" @click="changeList">
             <i class="iconfont icon-xiangyou" v-show="!show"></i>
             <i class="iconfont icon-xiangxia" v-show="show"></i>
             {{ name }}
         </div>
         <div v-show="show" class="list">
-            <div class="list-data" v-for="(item, index) in nodeArr" :key="index" @click="clickData(item)">{{ item.nickname }}</div>
+            <div class="list-data" v-for="(item, index) in nodeArr" :key="index" @click="clickData(item)">
+                <img v-if="item.headimg" :src="item.headimg" alt="" :class="headImgClasses[index]">
+                {{ item.nickname }}
+            </div>
         </div>
     </div>
 </template>
@@ -14,10 +17,12 @@
 <script>
 export default {
     name: 'Tree',
-    props: ['name','nodeArr'],
+    props: ['name','nodeArr','headImgClasses','blink'],
     data() {
         return {
             show: false,
+            title: 'title '
+            // headImgClasses: []
             // name: '联系人',
             // nodeArr: [
             //     {
@@ -44,7 +49,7 @@ export default {
             }
         },
         clickData(chatObj){
-            this.$emit('chat',chatObj)
+            this.$emit('chat',chatObj);
         }
     },
 }
@@ -65,16 +70,47 @@ export default {
             overflow-x: auto;
             cursor: pointer;
         }
+        .blink{
+            opacity: 1;
+            animation: blink 0.3s linear infinite alternate;
+        }
+        @keyframes blink{
+            from {opacity: 1}
+            to {opacity: 0}
+        }
         .list{
             width: 80%;
             margin-left: 50px;
             text-align: left;
             font-size: 20px;
             .list-data{
+                display: flex;
+                align-items: center;
                 margin-bottom: 8px;
                 white-space: nowrap;
                 overflow-x: auto;
                 cursor: pointer;
+                img{
+                    box-sizing: border-box;
+                    width: 52px;
+                    height: 52px;
+                    border-radius: 50%;
+                    padding: 2px;
+                    margin-right: 10px;
+                }
+                .bounce{
+                    position: relative;
+                    animation: bounce 0.4s linear infinite alternate;
+                    left: 0;
+                    top: 0;
+                }
+                @keyframes bounce{
+                    0% {left: -1px;top: -1px}
+                    25% {left: 0px;top: 0}
+                    50% {left: 1px;top: 1px}
+                    75% {left: 0;top: 0px}
+                    100% {left: -1px;top: -1px}
+                }
             }
             .list-data:hover{
                 // background: rgba(0, 0, 0, 0.219);

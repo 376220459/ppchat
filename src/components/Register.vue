@@ -1,7 +1,8 @@
 <template>
   <div class="register" :style="registerStyle" v-loading="loading" :element-loading-text="loadingText" element-loading-background="rgba(0, 0, 0, 0.6)">
     <div class="container" :style="containerStyle">
-      <img src="../../static/img/register.png" alt="login">
+      <!-- <img src="../../static/img/register.png" alt="login"> -->
+      <img :src="imgSrc" alt="login" title="点击切换头像" @click="changeHeadImg" :style="{opacity: imgOpacity}">
       <input type="text" placeholder="UserId" v-model="nickname">
       <input type="password" placeholder="PassWord" v-model="password" @keydown.enter="register">
       <button @click="register">Register</button>
@@ -20,7 +21,10 @@ export default {
       loading: false,
       loadingText: '',
       nickname: '',
-      password: ''
+      password: '',
+      imgOpacity: 1,
+      imgSrc: '../../static/headImg/head000.jpg',
+      imgIndex: 0
     }
   },
   methods: {
@@ -41,7 +45,8 @@ export default {
         this.loading = true;
         this.$http.post('http://localhost:3000/api/register',{
           nickname: this.nickname,
-          password: this.password
+          password: this.password,
+          headimg: this.imgSrc
         },
         {timeout: 3000})
         .then((res)=>{
@@ -74,6 +79,18 @@ export default {
             this.$message.warning('您怕是没联网吧~');
         })
       }
+    },
+    changeHeadImg(){
+      this.imgOpacity = 0.1;
+      setTimeout(() => {
+        this.imgIndex++;
+        if(this.imgIndex === 10){
+          this.imgIndex = 0;
+        }
+        console.log(this.imgIndex)
+        this.imgSrc = '../../static/headImg/head00' + this.imgIndex + '.jpg';
+        this.imgOpacity = 1;
+      }, 500);
     }
   },
   created() {
@@ -122,8 +139,16 @@ export default {
       transition: transform 0.5s;
       img{
         width: 120px;
+        height: 120px;
         margin-bottom: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        opacity: 0.3;
+        transition: opacity 0.5s;
       }
+      // img:hover{
+      //   opacity: 0;
+      // }
       input{
         box-sizing: border-box;
         width: 80%;

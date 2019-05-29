@@ -4,7 +4,7 @@
       <img src="../../static/img/login.png" alt="login">
       <input type="text" placeholder="UserId" v-model="nickname">
       <input type="password" placeholder="PassWord" v-model="password" @keydown.enter="login">
-      <button @click="login">Go</button>
+      <button @click="login" onclick="">Go</button>
     </div>
     <span class="register" @click="register">注册</span>
   </div>
@@ -19,11 +19,20 @@ export default {
       containerStyle: '',
       nickname: '王少华',
       password: '376220459',
-      uid: ''
+      uid: '',
+      headimg: '',
+      pre: 0
     }
   },
   methods: {
     login(){
+      let now = Date.now();
+      if(now - this.pre <= 1000){
+        this.$message.warning('点那么快干嘛~');
+        return;
+      }else{
+        this.pre = now;
+      }
       if(this.nickname.trim().length == 0){
         this.$message.error('不急，您还没有输入 UserId');
       }else if(this.password.trim().length == 0){
@@ -39,6 +48,7 @@ export default {
             if(res.data.status === 1){
                 if(res.data.message === '密码正确'){
                   this.uid = res.data.uid;
+                  this.headimg = res.data.headimg;
                   let ws = new WebSocket('ws://localhost:5000');
                   ws.onmessage = e=>{
                     // console.log(e.data);
@@ -54,7 +64,8 @@ export default {
                           name: 'Chat',
                           params: {
                             nickname: this.nickname,
-                            uid: this.uid
+                            uid: this.uid,
+                            headimg: this.headimg
                           }
                         })
                       }, 1000);

@@ -30,6 +30,8 @@ app.all('*', function (req, res, next) {
 
 app.use(bodyParser.json());
 
+console.log('正在建立连接...')
+
 app
 .post('/api/login',(req,res)=>{
     let nickname = req.body.nickname;
@@ -69,6 +71,7 @@ app
     let nickname = req.body.nickname;
     const sqlStr1 = 'select * from user where nickname = ?';
     const sqlStr2 = 'insert into user set ?';
+    const sqlStr3 = 'insert into relationship set owner = ?';
     sql.query(sqlStr1,nickname,(err,results)=>{
         if(err){
             res.json({
@@ -96,13 +99,299 @@ app
                                 message: '添加失败'
                             })
                         }else{
-                            res.json({
-                                status: 1,
-                                message: '注册成功'
+                            sql.query(sqlStr3,nickname,(err,results)=>{
+                                if(err){
+                                    res.json({
+                                        status: 0,
+                                        message: '添加失败'
+                                    })
+                                }else{
+                                    if(!results.affectedRows){
+                                        res.json({
+                                            status: 0,
+                                            message: '添加失败'
+                                        })
+                                    }else{
+                                        res.json({
+                                            status: 1,
+                                            message: '注册成功'
+                                        })
+                                    }
+                                }
                             })
                         }
                     }
                 })
+            }
+        }
+    })
+})
+.post('/api/addFriend',(req,res)=>{
+    let nickname = req.body.nickname;
+    const sqlStr = 'select uid from user where nickname = ?';
+    sql.query(sqlStr,nickname,(err,results)=>{
+        if(err){
+            res.json({
+                status: 0,
+                message: '查询失败'
+            })
+        }else{
+            if(!results.length){
+                res.json({
+                    status: 1,
+                    message: '查无此人'
+                })
+            }else{
+                let self = req.body.self;
+                let uid = results[0].uid;
+                let str;
+                let friends;
+                const sqlStr1 = 'select friends from relationship where owner = ?';
+                const sqlStr2 = 'update relationship set friends = ? where owner = ?';
+                sql.query(sqlStr1,self,(err,results)=>{
+                    if(err){
+                        res.json({
+                            status: 0,
+                            message: '查询失败'
+                        })
+                    }else{
+                        if(!results.length){
+                            res.json({
+                                status: 1,
+                                message: '查询失败'
+                            })
+                        }else{
+                            if(results[0].friends){
+                                friends = results[0].friends;
+                                str = friends +  ',' + nickname + '-' + uid;
+                            }else{
+                                str = nickname + '-' + uid;
+                            }
+                            
+                            // console.log(friends);
+                            sql.query(sqlStr2,[str,self],(err,results)=>{
+                                // console.log(results);
+                                // console.log(str + '---' + self)
+                                if(err){
+                                    res.json({
+                                        status: 0,
+                                        message: '添加失败'
+                                    })
+                                }else{
+                                    if(!results.affectedRows){
+                                        res.json({
+                                            status: 0,
+                                            message: '添加失败'
+                                        })
+                                    }else{
+                                        res.json({
+                                            status: 1,
+                                            message: '添加成功',
+                                            friendUid: uid
+                                        })
+                                    }
+                                }
+                            })
+                        }
+                    }
+                })
+            }
+        }
+    })
+})
+.post('/api/addGroup',(req,res)=>{
+    let nickname = req.body.nickname;
+    let uid = req.body.uid;
+    let group = req.body.group;
+    const sqlStr = 'select gid from mygroup where nickname = ?';
+    sql.query(sqlStr,group,(err,results)=>{
+        if(err){
+            res.json({
+                status: 0,
+                message: '查询失败'
+            })
+        }else{
+            if(!results.length){
+                res.json({
+                    status: 1,
+                    message: '查无此群'
+                })
+            }else{
+                let gid = results[0].gid;
+                let str;
+                let groups;
+                let members;
+                let str2;
+                const sqlStr1 = 'select * from relationship where owner = ?';
+                const sqlStr2 = 'update relationship set mygroups = ? where owner = ?';
+                const sqlStr3 = 'select * from mygroup where nickname = ?';
+                const sqlStr4 = 'update mygroup set members = ? where nickname = ?';
+                sql.query(sqlStr1,nickname,(err,results)=>{
+                    if(err){
+                        res.json({
+                            status: 0,
+                            message: '查询失败'
+                        })
+                    }else{
+                        if(!results.length){
+                            res.json({
+                                status: 1,
+                                message: '查询失败'
+                            })
+                        }else{
+                            if(results[0].mygroups){
+                                groups = results[0].mygroups;
+                                str = groups +  ',' + group + '-' + gid;
+                            }else{
+                                str = group + '-' + gid;
+                            }
+                            sql.query(sqlStr2,[str,nickname],(err,results)=>{
+                                console.log(err)
+                                if(err){
+                                    res.json({
+                                        status: 0,
+                                        message: '加入失败'
+                                    })
+                                }else{
+                                    if(!results.affectedRows){
+                                        res.json({
+                                            status: 0,
+                                            message: '加入失败'
+                                        })
+                                    }else{
+                                        sql.query(sqlStr3,group,(err,results)=>{
+                                            if(err){
+                                                res.json({
+                                                    status: 0,
+                                                    message: '查询失败'
+                                                })
+                                            }else{
+                                                if(!results.length){
+                                                    res.json({
+                                                        status: 1,
+                                                        message: '查询失败'
+                                                    })
+                                                }else{
+                                                    if(results[0].members){
+                                                        members = results[0].members;
+                                                        str2 = members +  ',' + nickname + '-' + uid;
+                                                    }else{
+                                                        str2 = nickname + '-' + uid;
+                                                    }
+                                                    sql.query(sqlStr4,[str2,group],(err,results)=>{
+                                                        if(err){
+                                                            res.json({
+                                                                status: 0,
+                                                                message: '加入失败'
+                                                            })
+                                                        }else{
+                                                            if(!results.affectedRows){
+                                                                res.json({
+                                                                    status: 0,
+                                                                    message: '加入失败'
+                                                                })
+                                                            }else{
+                                                                res.json({
+                                                                    status: 1,
+                                                                    message: '加入成功',
+                                                                    gid: gid
+                                                                })
+                                                            }
+                                                        }
+                                                    })
+                                                }
+                                            }
+                                        })
+                                    }
+                                }
+                            })
+                        }
+                    }
+                })
+            }
+        }
+    })
+})
+.post('/api/createGroup',(req,res)=>{
+    let nickname = req.body.nickname;
+    let uid = req.body.uid;
+    let group = req.body.group;
+    const sqlStr = 'select nickname from mygroup';
+    const sqlStr1 = 'insert into mygroup set ?';
+    sql.query(sqlStr,nickname,(err,results)=>{
+        if(err){
+            res.json({
+                status: 0,
+                message: '查询失败'
+            })
+        }else{
+            let groups = results.map(e=>e.nickname);
+            if(groups.length && groups.includes(group)){
+                res.json({
+                    status: 1,
+                    message: '已创建'
+                })
+            }else{
+                // console.log('可创建')
+                let gid = Date.now();
+                let groupObj = {
+                    nickname: group,
+                    gid: gid
+                }
+                sql.query(sqlStr1,groupObj,(err,results)=>{
+                    if(err){
+                        res.json({
+                            status: 0,
+                            message: '创建失败'
+                        })
+                    }else{
+                        if(!results.affectedRows){
+                            res.json({
+                                status: 0,
+                                message: '创建失败'
+                            })
+                        }else{
+                            res.json({
+                                status: 1,
+                                message: '创建成功',
+                                group: group
+                            })
+                        }
+                    }
+                })
+            }
+        }
+    })
+})
+.post('/api/checkFriend',(req,res)=>{
+    let nickname = req.body.nickname;
+    let otherNickname = req.body.otherNickname;
+    const sqlStr = 'select friends from relationship where owner = ?';
+    sql.query(sqlStr,otherNickname,(err,results)=>{
+        if(err){
+            res.json({
+                status: 0,
+                message: '查询失败'
+            })
+        }else{
+            if(!results.length){
+                res.json({
+                    status: 0,
+                    message: '查询失败'
+                })
+            }else{
+                if(results[0].friends.includes(nickname)){
+                    res.json({
+                        status: 1,
+                        message: '对方已添加自己',
+                        uid: results[0].uid
+                    })
+                }else{
+                    res.json({
+                        status: 1,
+                        message: '对方未添加自己'
+                    })
+                }
             }
         }
     })
@@ -118,10 +407,16 @@ app
     1：初次登录
     3：建立一对一通讯桥梁
     4：一对一发送消息
+    5: 建立群内通讯桥梁
+    6：群内发送消息
+    7：加入群组
 */
 
-
-console.log('正在建立连接...')
+let users = [];
+let user;
+let bridge = {};
+let msgs = {};
+let allGroups = {}
 
 function broadcast(obj){
     if(obj.type === 1){
@@ -183,20 +478,53 @@ function broadcast(obj){
         //     }
         // });
         // return;
+    }else if(obj.type === 5){
+        let uid = obj.uid;
+        let gid = obj.group.gid;
+        server.connections.forEach(conn=>{
+            if(uid === conn.path.slice(6)){
+                conn.sendText(JSON.stringify(obj));
+            }
+        });
+        if(allGroups[gid][uid].length !== 0){
+            allGroups[gid][uid].forEach(e=>{
+                server.connections.forEach(conn=>{
+                    if(uid === conn.path.slice(6)){
+                        conn.sendText(JSON.stringify(e));
+                    }
+                });
+            })
+            allGroups[gid][uid] = [];
+        }
+    }else if(obj.type === 6){
+        let arr = server.connections.map(conn=>conn.path.slice(6));
+        allGroups[obj.gid].members.forEach(e=>{
+            if(!arr.includes(e)){
+                allGroups[obj.gid][e].push(obj);
+            }
+        })
+        server.connections.forEach(conn=>{
+            if(allGroups[obj.gid].members.includes(conn.path.slice(6))){
+                conn.sendText(JSON.stringify(obj));
+            }
+        });
+    }else if(obj.type === 7){
+        let uid = obj.uid;
+        server.connections.forEach(conn=>{
+            if(uid === conn.path.slice(6)){
+                conn.sendText(JSON.stringify(obj));
+            }
+        });
     }
-    server.connections.forEach(conn=>{
-        conn.sendText(JSON.stringify(obj));
-    })
+    // server.connections.forEach(conn=>{
+    //     conn.sendText(JSON.stringify(obj));
+    // })
 }
 
 function getDate(){
     return moment().format('YYYY-MM-DD HH:mm:ss')
 }
 
-let users = [];
-let user;
-let bridge = {};
-let msgs = {};
 let server = ws.createServer(conn=>{
     conn
     .on('text',obj=>{
@@ -228,9 +556,15 @@ let server = ws.createServer(conn=>{
                     if(results.length){
                         console.log('成功返回关系表')
                         // console.log(results[0])
-                        let groups,friends0,friends;
-                        if(results[0].groups){
-                            groups = results[0].groups.split(',');
+                        let groups,groups0,friends0,friends;
+                        if(results[0].mygroups){
+                            groups0 = results[0].mygroups.split(',').map(e=>e.split('-'))
+                            groups = [];
+                            groups0.forEach((item,index)=>{
+                                groups[index] = {};
+                                groups[index].nickname = item[0];
+                                groups[index].gid = item[1];
+                            });
                         }
                         if(results[0].friends){
                             friends0 = results[0].friends.split(',').map(e=>e.split('-'))
@@ -330,6 +664,110 @@ let server = ws.createServer(conn=>{
             }else{
                 conn.sendText('未登录');
             }
+        }else if(obj.type === 5){
+            let uid = obj.uid;
+            let nickname = obj.group.nickname;
+            let gid = obj.group.gid + '';
+            const sqlStr = 'select * from mygroup where nickname = ?';
+            sql.query(sqlStr,nickname,(err,results)=>{
+                if(err){
+                    broadcast({
+                        type: 5,
+                        msg: '查询失败',
+                        uid: uid,
+                        group: obj.group
+                    });
+                }else{
+                    if(results.length){
+                        if(!allGroups[gid]){
+                            allGroups[gid] = {};
+                            allGroups[gid].members = [];
+                            members0 = results[0].members.split(',').map(e=>e.split('-'));
+                            members0.forEach((item,index)=>{
+                                allGroups[gid].members[index] = item[1];
+                                allGroups[gid][item[1] + ''] = [];
+                            });
+                        }
+                        console.log('群内成员建立连接');
+                        broadcast({
+                            type: 5,
+                            msg: '群内成员建立连接',
+                            uid: uid,
+                            group: obj.group
+                        });
+                    }else{
+                        broadcast({
+                            type: 5,
+                            msg: '查询失败',
+                            uid: uid,
+                            group: obj.group
+                        });
+                    }
+                }
+            })
+            // allGroups[e.nickname].members = 
+            // broadcast({
+            //     type: 5,
+            //     date: getDate(),
+            //     msg: '群内成员建立连接'
+            // });
+        }else if(obj.type === 6){
+            broadcast({
+                type: 6,
+                date: getDate(),
+                msg: obj.msg,
+                nickname: obj.nickname,
+                uid: obj.uid + '',
+                group: obj.group,
+                gid: obj.gid
+            });
+        }else if(obj.type === 7){
+            let uid = obj.uid;
+            let nickname = obj.group;
+            let gid = obj.gid + '';
+            const sqlStr = 'select * from mygroup where nickname = ?';
+            sql.query(sqlStr,nickname,(err,results)=>{
+                if(err){
+                    broadcast({
+                        type: 7,
+                        msg: '查询失败',
+                        uid: uid
+                    });
+                }else{
+                    if(results.length){
+                        if(!allGroups[gid]){
+                            allGroups[gid] = {};
+                            allGroups[gid].members = [];
+                            members0 = results[0].members.split(',').map(e=>e.split('-'));
+                            members0.forEach((item,index)=>{
+                                allGroups[gid].members[index] = item[1];
+                                allGroups[gid][item[1] + ''] = [];
+                            });
+                            broadcast({
+                                type: 7,
+                                msg: '新建群成功',
+                                uid: uid
+                            });
+                        }else{
+                            allGroups[gid].members.push(uid);
+                            allGroups[gid][uid + ''] = [];
+                            broadcast({
+                                type: 7,
+                                msg: '加入群成功',
+                                uid: uid
+                            });
+                        }
+                        // console.log('群内成员建立连接');
+                        
+                    }else{
+                        broadcast({
+                            type: 7,
+                            msg: '查询失败',
+                            uid: uid
+                        });
+                    }
+                }
+            })
         }
     })
     .on('close',()=>{

@@ -1,25 +1,58 @@
 <template>
-  <div class="chat" :style="chatStyle">
+  <div class="chat" :style="chatStyle" @click="hiddenAddList">
+    <div class="add-friend-page" v-if="showFriendPage" @click.stop>
+      <input type="text" placeholder="请输入好友昵称" maxlength="10" v-model="addFriendName" @keydown.enter="addFriend">
+      <button @click="addFriend">添加</button>
+    </div>
+    <div class="add-group-page" v-if="showGroupPage" @click.stop>
+      <input type="text" placeholder="请输入群名称" maxlength="15" v-model="addGroupName" @keydown.enter="addGroup">
+      <button @click="addGroup">添加</button>
+    </div>
+    <div class="create-group-page" v-if="showCreateGroupPage" @click.stop>
+      <input type="text" placeholder="请输入群名称" maxlength="15" v-model="createGroupName" @keydown.enter="createGroup">
+      <button @click="createGroup">创建</button>
+    </div>
     <div class="container">
       <div class="chat-list">
         <tree name='联系人' :node-arr='friends' @chat='chat'></tree>
-        <tree name='群' :node-arr='groups' @chat='chat'></tree>
+        <tree name='群' :node-arr='groups' @chat='chatGroup'></tree>
+        <i class="add-button iconfont icon-add" @click.stop="changeAddList"></i>
+        <div class="add-list" v-if="showAddList" @click.stop>
+          <div @click="showAddPage('friend')"><i class="iconfont icon-tianjiahaoyou"></i>添加好友</div>
+          <div @click="showAddPage('group')"><i class="iconfont icon-qunliao"></i>加入群</div>
+          <div @click="showAddPage('create')"><i class="iconfont icon-qunzu"></i>新建群</div>
+        </div>
       </div>
-      <div class="chat-content" v-if="otheruid">
+      <div class="chat-content" v-if="otheruid || group">
         <div class="chat-content-show">
-          <div class="chat-obj">{{ chatObj }}</div>
-          <div class="chat-main">
+          <div class="chat-obj">{{ otherNickname || group }}</div>
+
+          <div class="chat-main" v-if="otheruid">
             <div ref="message" class="chat-message" v-for="(item, index) in messages[otheruid]" :key="index">
-              <div class="msg-self" v-if="item.nickname !== chatObj">
+              <div class="msg msg-self" v-if="item.nickname !== otherNickname">
                 <span>{{ item.msg }}</span>
                 <img src="../../static/headImg/self.jpg" alt="">
               </div>
-              <div class="msg-other" v-else>
+              <div class="msg msg-other" v-else>
                 <img src="../../static/headImg/niu.jpg" alt="">
                 <span>{{ item.msg }}</span>
               </div>
             </div>
           </div>
+
+          <div class="chat-main" v-if="group">
+            <div class="chat-message" v-for="(item, index) in messages[gid]" :key="index">
+              <div class="msg msg-self" v-if="item.nickname == nickname">
+                <span>{{ item.msg }}</span>
+                <img src="../../static/headImg/self.jpg" alt="">
+              </div>
+              <div class="msg msg-other" v-else>
+                <img src="../../static/headImg/niu.jpg" alt="">
+                <span>{{ item.msg }}</span>
+              </div>
+            </div>
+          </div>
+
         </div>
         <div class="chat-content-input">
           <div class="tools">
@@ -49,42 +82,320 @@ export default {
       fontColor: '#000000',
       msg: ``,
       ws: null,
-      chatObj: '',
+      group: '',
+      gid: '',
+      otherNickname: '',
       otheruid: '',
-      messages: {}
+      messages: {},
+      showAddList: false,
+      showFriendPage: false,
+      showGroupPage: false,
+      showCreateGroupPage: false,
+      addFriendName: '',
+      addGroupName: '',
+      createGroupName: ''
     }
   },
   methods: {
-    send(e){
-      if(!e.shiftKey){
-        e.preventDefault();
-        let sendMsg = {
-          type: 4,
-          msg: this.msg,
+    changeAddList(){
+      if(!this.showAddList){
+        this.showAddList = true;
+      }else{
+        this.showAddList = false;
+      }
+      this.showFriendPage = false;
+      this.showGroupPage = false;
+      this.showCreateGroupPage = false;
+    },
+    hiddenAddList(e){
+      if(e.currentTarget.className !== 'add-list' && this.showAddList){
+        this.showAddList = false;
+      }
+      if(e.currentTarget.className !== 'add-friend-page' || e.currentTarget.className !== 'add-group-page'){
+        this.showFriendPage = false;
+        this.showGroupPage = false;
+        this.showCreateGroupPage = false;
+      }
+    },
+    showAddPage(type){
+      this.showAddList = false;
+      if(type === 'friend'){
+        this.showGroupPage = false;
+        this.showCreateGroupPage = false;
+        this.showFriendPage = true;
+      }else if(type === 'group'){
+        this.showFriendPage = false;
+        this.showCreateGroupPage = false;
+        this.showGroupPage = true;
+      }else{
+        this.showFriendPage = false;
+        this.showGroupPage = false;
+        this.showCreateGroupPage = true;
+      }
+    },
+    addFriend(){
+      let friends = this.friends.map(e=>e.nickname);
+      let name = this.addFriendName.trim();
+      if(!name){
+        this.$message.warning('拜托，你都没有输入昵称好吧')
+      }else if(name === this.nickname){
+        this.$message.warning('添加自己为好友就过分了啊')
+      }else if(friends.indexOf(this.addFriendName) !== -1){
+        this.$message.warning('Ta已经是你的好友了，不要贪心哦')
+      }else{
+        this.$http.post('http://localhost:3000/api/addFriend',{
+          nickname: name,
+          self: this.nickname
+        },
+        {timeout: 3000})
+        .then((res)=>{
+            // console.log(res.data);
+            if(res.data.status === 1){
+                if(res.data.message === '添加成功'){
+                  let friendUid = res.data.friendUid;
+                  this.friends.push({
+                    nickname: name,
+                    uid: friendUid
+                  });
+                  this.$set(this.messages,friendUid,[]);
+
+                  let sendMsg = {
+                    type: 3,
+                    // msg: '一对一建立连接',
+                    nickname: this.nickname,
+                    uid: this.uid,
+                    bridge: [this.uid + '',friendUid + '']
+                  }
+                  if(this.ws.readyState === 1){
+                    this.ws.send(JSON.stringify(sendMsg));
+                    this.$message.success('添加成功');
+                    this.showFriendPage = false;
+                  }
+                  // console.log(this.friends);
+                }else if(res.data.message === '查无此人'){
+                  this.$message.warning('没有找到该好友哦，检查下昵称吧');
+                }else{
+                  this.$message.warning('服务器开小差了，休息一会吧~');
+                }
+            }else{
+              this.$message.warning('服务器开小差了，休息一会吧~');
+            }
+        })
+        .catch((err)=>{
+            console.log(err);
+            this.$message.warning('您怕是没联网吧~');
+        })
+      }
+      this.addFriendName = '';
+    },
+    addGroup(){
+      let groups = this.groups.map(e=>e.nickname);
+      let name = this.addGroupName.trim();
+      if(!name){
+        this.$message.warning('拜托，你都没有输入群名好吧')
+      }else if(groups.indexOf(this.addGroupName) !== -1){
+        this.$message.warning('你已经是改群组的成员啦，不要贪心哦')
+      }else{
+        this.$http.post('http://localhost:3000/api/addGroup',{
           nickname: this.nickname,
           uid: this.uid,
-          bridge: [this.uid + '',this.otheruid + '']
-        }
-        this.msg = '';
-        if(this.ws.readyState === 1 && this.otheruid){
-          this.ws.send(JSON.stringify(sendMsg));
+          group: name
+        },
+        {timeout: 3000})
+        .then((res)=>{
+            // console.log(res.data);
+            if(res.data.status === 1){
+                if(res.data.message === '加入成功'){
+                  let gid = res.data.gid;
+                  this.groups.push({
+                    nickname: name,
+                    gid: gid
+                  });
+                  this.$set(this.messages,gid,[]);
+
+                  let sendMsg = {
+                    type: 7,
+                    // msg: '加入群组',
+                    group: name,
+                    gid: gid,
+                    nickname: this.nickname,
+                    uid: this.uid + ''
+                  }
+                  // let sendMsg = {
+                  //   type: 3,
+                  //   // msg: '一对一建立连接',
+                  //   nickname: this.nickname,
+                  //   uid: this.uid,
+                  //   bridge: [this.uid + '',friendUid + '']
+                  // }
+                  if(this.ws.readyState === 1){
+                    this.ws.send(JSON.stringify(sendMsg));
+                    this.$message.success('加入成功');
+                    this.showGroupPage = false;
+                  }
+                  // console.log(this.friends);
+                }else if(res.data.message === '查无此群'){
+                  this.$message.warning('没有找到该群哦，检查下群昵称吧');
+                }else{
+                  this.$message.warning('服务器开小差了，休息一会吧~');
+                }
+            }else{
+              this.$message.warning('服务器开小差了，休息一会吧~');
+            }
+        })
+        .catch((err)=>{
+            console.log(err);
+            this.$message.warning('您怕是没联网吧~');
+        })
+      }
+      this.addGroupName = '';
+    },
+    createGroup(){
+      let name = this.createGroupName.trim();
+      if(!name){
+        this.$message.warning('拜托，你都没有输入群名好吧')
+      }else{
+        this.$http.post('http://localhost:3000/api/createGroup',{
+          nickname: this.nickname,
+          uid: this.uid,
+          group: name
+        },
+        {timeout: 3000})
+        .then((res)=>{
+            // console.log(res.data);
+            if(res.data.status === 1){
+                if(res.data.message === '创建成功'){
+                  // console.log('创建成功')
+                  let group = res.data.group;
+                  this.$http.post('http://localhost:3000/api/addGroup',{
+                    nickname: this.nickname,
+                    uid: this.uid,
+                    group: group
+                  },
+                  {timeout: 3000})
+                  .then((res)=>{
+                      // console.log(res.data);
+                      if(res.data.status === 1){
+                          if(res.data.message === '加入成功'){
+                            let gid = res.data.gid;
+                            this.groups.push({
+                              nickname: group,
+                              gid: gid
+                            });
+                            this.$set(this.messages,gid,[]);
+
+                            let sendMsg = {
+                              type: 7,
+                              // msg: '加入群组',
+                              group: group,
+                              gid: gid,
+                              nickname: this.nickname,
+                              uid: this.uid + ''
+                            }
+                            if(this.ws.readyState === 1){
+                              this.ws.send(JSON.stringify(sendMsg));
+                              this.$message.success('创建成功');
+                              this.showCreateGroupPage= false;
+                            }
+                          }else{
+                            this.$message.warning('服务器开小差了，休息一会吧~');
+                          }
+                      }else{
+                        this.$message.warning('服务器开小差了，休息一会吧~');
+                      }
+                  })
+                  .catch((err)=>{
+                      console.log(err);
+                      this.$message.warning('您怕是没联网吧~');
+                  })
+                }else if(res.data.message === '已创建'){
+                  this.$message.warning('本群已创建，重新想一个群名称吧');
+                }else{
+                  this.$message.warning('服务器开小差了，休息一会吧~');
+                }
+            }else{
+              this.$message.warning('服务器开小差了，休息一会吧~');
+            }
+        })
+        .catch((err)=>{
+            console.log(err);
+            this.$message.warning('您怕是没联网吧~');
+        })
+      }
+      this.createGroupName = '';
+    },
+    send(e){
+      if(!this.msg && !e.shiftKey){
+        e.preventDefault();
+        return;
+      }
+      if(!e.shiftKey){
+        e.preventDefault();
+        if(this.otherNickname){
+          let sendMsg = {
+            type: 4,
+            msg: this.msg,
+            nickname: this.nickname,
+            uid: this.uid,
+            bridge: [this.uid + '',this.otheruid + '']
+          }
+          this.msg = ``;
+          this.$http.post('http://localhost:3000/api/checkFriend',{
+            nickname: this.nickname,
+            otherNickname: this.otherNickname
+          },
+          {timeout: 3000})
+          .then((res)=>{
+              // console.log(res.data);
+              if(res.data.status === 1){
+                  if(res.data.message === '对方已添加自己'){
+                    if(this.ws.readyState === 1){
+                      this.ws.send(JSON.stringify(sendMsg));
+                    }
+                  }else if(res.data.message === '对方未添加自己'){
+                    this.$message.warning('对方还没有添加你为好友哦，再等等吧');
+                  }
+              }else{
+                this.$message.warning('服务器开小差了，休息一会吧~');
+              }
+          })
+          .catch((err)=>{
+              console.log(err);
+              this.$message.warning('您怕是没联网吧~');
+          })
+        }else if(this.group){
+          let sendMsg = {
+            type: 6,
+            msg: this.msg,
+            nickname: this.nickname,
+            uid: this.uid + '',
+            group: this.group,
+            gid: this.gid + ''
+          }
+          this.msg = ``;
+          if(this.ws.readyState === 1){
+            this.ws.send(JSON.stringify(sendMsg));
+          }
         }
       }
     },
-    chat(chatObj){
-      // console.log(chatObj.nickname)
-      this.chatObj = chatObj.nickname;
-      this.otheruid = chatObj.uid + '';
-      // let sendMsg = {
-      //   type: 3,
-      //   // msg: '建立连接',
-      //   nickname: this.nickname,
-      //   uid: this.uid,
-      //   bridge: [this.uid + '',this.otheruid + '']
-      // }
-      // if(this.ws.readyState === 1){
-      //   this.ws.send(JSON.stringify(sendMsg));
-      // }
+    chat(otherObj){
+      // console.log(otherNickname.nickname)
+      if(this.group){
+        this.group = '';
+        this.gid = '';
+      }
+      this.otherNickname = otherObj.nickname;
+      this.otheruid = otherObj.uid + '';
+    },
+    chatGroup(groupObj){
+      // console.log(otherNickname.nickname)
+      if(this.otherNickname){
+        this.otherNickname = '';
+        this.otheruid = '';
+      }
+      this.group = groupObj.nickname;
+      this.gid = groupObj.gid + '';
     }
   },
   created() {
@@ -123,16 +434,24 @@ export default {
           this.$message.success(this.nickname + '，您已成功连接至ppchat，当前在线人数：' + obj.data.onlineCount + '人');
         }else if(obj.msg === '成功返回关系表'){
           // console.log('成功返回关系表');
-          obj.data.friends.forEach(e=>{
-            /* 重点！！！  此处不能写作 this.messages[e.uid] = [],否则将会导致视图层不能正常渲染。 */
-            this.$set(this.messages,e.uid,[]);
-          })
+          if(obj.data.friends){
+            obj.data.friends.forEach(e=>{
+              /* 重点！！！  此处不能写作 this.messages[e.uid] = [],否则将会导致视图层不能正常渲染。 */
+              this.$set(this.messages,e.uid,[]);
+            })
+          }
+          if(obj.data.groups){
+            obj.data.groups.forEach(e=>{
+              /* 重点！！！  此处不能写作 this.messages[e.gid] = [],否则将会导致视图层不能正常渲染。 */
+              this.$set(this.messages,e.gid,[]);
+            })
+          }
           if(obj.data.friends){
             this.friends = obj.data.friends;
             this.friends.forEach(e=>{
               let sendMsg = {
                 type: 3,
-                // msg: '建立连接',
+                // msg: '一对一建立连接',
                 nickname: this.nickname,
                 uid: this.uid,
                 bridge: [this.uid + '',e.uid + '']
@@ -143,10 +462,18 @@ export default {
             })
           }
           if(obj.data.groups){
-            // this.groups = obj.data.groups;
-            obj.data.groups.forEach((item,index)=>{
-              this.groups[index] = {};
-              this.groups[index].nickname = item;
+            this.groups = obj.data.groups;
+            this.groups.forEach(e=>{
+              let sendMsg = {
+                type: 5,
+                // msg: '群内成员建立连接',
+                group: e,
+                nickname: this.nickname,
+                uid: this.uid + ''
+              }
+              if(this.ws.readyState === 1){
+                this.ws.send(JSON.stringify(sendMsg));
+              }
             })
           }
         }
@@ -156,15 +483,46 @@ export default {
             nickname: obj.nickname,
             msg: obj.msg
           });
-          // setTimeout(() => {
-          //   this.$refs.message[this.messages[this.otheruid.length - 1].style.color = 'red';
-          // }, 0);
         }else{
-          console.log(obj.nickname + ':' + obj.uid)
           this.messages[obj.uid].push({
             nickname: obj.nickname,
             msg: obj.msg
           });
+        }
+        setTimeout(() => {
+          let msgs = document.getElementsByClassName('msg');
+          if(msgs[msgs.length - 1]){
+            msgs[msgs.length - 1].scrollIntoView();
+          }
+          // msgs[msgs.length - 1].scrollIntoView();
+        }, 0);
+      }else if(obj.type === 5){
+        // console.log('收到回复')
+        if(obj.msg === '群内成员建立连接'){
+          console.log(obj.msg);
+        }
+      }else if(obj.type === 6){
+        let gid = obj.gid;
+        this.messages[gid].push({
+          msg: obj.msg,
+          nickname: obj.nickname,
+          uid: obj.uid,
+          group: obj.group,
+          gid: obj.gid
+        });
+        setTimeout(() => {
+          let msgs = document.getElementsByClassName('msg');
+          if(msgs[msgs.length - 1]){
+            msgs[msgs.length - 1].scrollIntoView();
+          }
+        }, 0);
+      }else if(obj.type === 7){
+        if(obj.msg === '新建群成功'){
+          console.log(obj.msg);
+        }else if(obj.msg === '加入群成功'){
+          console.log(obj.msg);
+        }else{
+          console.log(obj.msg);
         }
       }else{
         console.log(obj.msg);
@@ -209,6 +567,40 @@ export default {
     display: flex;
     justify-content: center;
     align-items: center;
+    .add-friend-page,.add-group-page,.create-group-page{
+      width: 300px;
+      height: 150px;
+      border: 1px solid #606060;
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.589);
+      position: absolute;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      input{
+        box-sizing: border-box;
+        height: 30px;
+        width: 80%;
+        border: 1px solid #888888;
+        border-radius: 15px;
+        padding: 0 1.5em;
+      }
+      button{
+        height: 30px;
+        width: 40%;
+        border: 3px solid #888888;
+        border-radius: 10px;
+        margin-top: 20px;
+        color: #404040b7;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      button:active{
+        transform: scale(0.99);
+      }
+    }
     .container{
       box-sizing: border-box;
       width: 1200px;
@@ -228,9 +620,48 @@ export default {
       .chat-list{
         width: 400px;
         padding: 60px;
-        // background: #C8C8C8;
         background: url(../../static/img/list-back.jpg);
         background-size: cover;
+        position: relative;
+        .add-button{
+          position: absolute;
+          bottom: 10px;
+          right: 10px;
+          z-index: 2;
+          font-size: 35px;
+          color: rgba(0, 0, 0, 0.459);
+          cursor: pointer;
+        }
+        .add-button:hover{
+          color: rgba(0, 0, 0, 0.35);
+        }
+        .add-button:active{
+          transform: scale(0.9);
+        }
+        .add-list{
+          box-sizing: border-box;
+          width: 130px;
+          height: 150px;
+          background: white;
+          border-radius: 10px;
+          border-bottom-right-radius: 0;
+          position: absolute;
+          bottom: 45px;
+          right: 45px;
+          div{
+            font-size: 20px;
+            color: black;
+            margin: 20px 10px;
+            text-align: left;
+            cursor: pointer;
+            i{
+              margin-right: 5px;
+            }
+          }
+          div:hover{
+            color: rgba(0, 0, 0, 0.438);
+          }
+        }
       }
       .chat-content{
         width: 800px;
@@ -252,7 +683,6 @@ export default {
             color: rgba(0, 0, 0, 0.5);
           }
           .chat-main{
-            // background: red;
             box-sizing: border-box;
             flex: auto;
             overflow: auto;
@@ -266,7 +696,6 @@ export default {
                 box-sizing: border-box;
                 width: auto;
                 display: flex;
-                // align-items: flex-start;
                 img{
                   width: 50px;
                   height: 50px;
@@ -283,6 +712,7 @@ export default {
                   padding: 5px 10px 0 10px;
                   margin-top: 10px;
                   text-align: left;
+                  white-space: pre;
                 }
               }
               .msg-self{

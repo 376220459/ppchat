@@ -37,7 +37,11 @@ export default {
       }, 450);
     },
     register(){
-      if(!/^[\u4e00-\u9fa5a-zA-Z0-9]{1,9}$/.test(this.nickname)){
+      if(this.nickname.trim().length == 0){
+        this.$message.warning('不急，您还没有输入 UserId');
+      }else if(this.password.trim().length == 0){
+        this.$message.warning('不急，您还没有输入 PassWord');
+      }else if(!/^[\u4e00-\u9fa5a-zA-Z0-9]{1,9}$/.test(this.nickname)){
         this.$message.warning('别乱起名字，UserId 由 1~9 位英文、汉字或数字组成，不能有空格哦');
       }else if(!/^[+-.a-zA-Z0-9]{4,16}$/.test(this.password)){
         this.$message.warning('密码不规范哦，PassWord 由 4~16 位英文、数字或+-.组成');

@@ -1,5 +1,5 @@
 <template>
-  <div class="chat" :style="chatStyle" @click="hiddenAddList">
+  <div class="chat" @click="hiddenAddList">
     <div class="add-friend-page" v-if="showFriendPage" @click.stop>
       <input type="text" placeholder="请输入好友昵称" maxlength="10" v-model="addFriendName" @keydown.enter="addFriend">
       <button @click="addFriend">添加</button>
@@ -18,8 +18,8 @@
           <img :src="headimg" alt="">
           <span>{{ nickname }}</span>
         </div>
-        <tree name='联系人' :node-arr='friends' @chat='chat' :headImgClasses='headImgClasses' :blink='blink'></tree>
-        <tree name='群' :node-arr='groups' @chat='chatGroup'></tree>
+        <tree name='联系人' :node-arr='friends' @chat='chat' :head-img-classes='headImgClasses' :blink='blink' name-blink="[]"></tree>
+        <tree name='群' :node-arr='groups' @chat='chatGroup' :blink='blink2' :name-blink="nameBlink"></tree>
         <i class="add-button iconfont icon-add" @click.stop="changeAddList"></i>
         <div class="add-list" v-if="showAddList" @click.stop>
           <div @click="showAddPage('friend')"><i class="iconfont icon-tianjiahaoyou"></i>添加好友</div>
@@ -29,18 +29,22 @@
       </div>
       <div class="chat-content" v-if="otheruid || group">
         <div class="chat-content-show">
+          <div class="icon-list" v-if="iconListIf">
+            <i v-for="(item, index) in iconList2" :key="index" :class="iconfontClass + item" @click="selectIcon(item)"></i>
+          </div>
+
           <div class="chat-obj">{{ otherNickname || group }}</div>
 
           <div class="chat-main" v-if="otheruid">
             <div ref="message" class="chat-message" v-for="(item, index) in messages[otheruid]" :key="index">
               <div class="msg msg-self" v-if="item.nickname !== otherNickname">
-                <span>{{ item.msg }}</span>
+                <span :style="{color: item.color}" v-html="item.msg">{{ item.msg }}</span>
                 <img :src="item.headimg" alt="">
               </div>
               <div class="msg msg-other" v-else>
                 <img :src="item.headimg" alt="">
                 <span class='span-inf'>{{ item.nickname }}</span>
-                <span class='span-msg'>{{ item.msg }}</span>
+                <span class='span-msg' :style="{color: item.color}" v-html="item.msg">{{ item.msg }}</span>
               </div>
             </div>
           </div>
@@ -48,13 +52,13 @@
           <div class="chat-main" v-if="group">
             <div class="chat-message" v-for="(item, index) in messages[gid]" :key="index">
               <div class="msg msg-self" v-if="item.nickname == nickname">
-                <span>{{ item.msg }}</span>
+                <span :style="{color: item.color}" v-html="item.msg">{{ item.msg }}</span>
                 <img :src="item.headimg" alt="">
               </div>
               <div class="msg msg-other" v-else>
                 <img :src="item.headimg" alt="">
                 <span class='span-inf'>{{ item.nickname }}</span>
-                <span class='span-msg'>{{ item.msg }}</span>
+                <span class='span-msg' :style="{color: item.color}" v-html="item.msg">{{ item.msg }}</span>
               </div>
             </div>
           </div>
@@ -62,11 +66,11 @@
         </div>
         <div class="chat-content-input">
           <div class="tools">
-            <i class="iconfont icon-biaoqing"></i>
+            <i class="iconfont icon-biaoqing" @click.stop="showIconList"></i>
             <i class="iconfont icon-tupian"></i>
             <el-color-picker v-model="fontColor"></el-color-picker>
           </div>
-          <textarea v-model="msg" :style="{color:fontColor}" @keydown.enter="send"></textarea>
+          <textarea v-model="msg" :style="{color:fontColor}" @keydown.enter="send" id="ipt"></textarea>
           <button @click="send">发送(Enter)</button>
         </div>
       </div>
@@ -75,6 +79,17 @@
 </template>
 
 <script>
+function getPosition(element) {
+    let cursorPos = 0;
+    if (document.selection) {//IE
+        var selectRange = document.selection.createRange();
+        selectRange.moveStart('character', -element.value.length);
+        cursorPos = selectRange.text.length;
+    } else if (element.selectionStart || element.selectionStart == '0') {
+        cursorPos = element.selectionStart;
+    }
+    return cursorPos;
+}
 import tree from './Tree.vue'  
 export default {
   name: 'Chat',
@@ -83,6 +98,12 @@ export default {
     return {
       headImgClasses: [],
       blink: '',
+      blink2: '',
+      nameBlink: [],
+      iconfontClass: 'iconfont ',
+      iconList1: ['[icon-Nird]','[icon-Ninja]','[icon-Pirate]','[icon-LOL]','[icon-Money-Eye]','[icon-Layer-1]','[icon-Kiss]','[icon-Layer-]','[icon-Laugh-Hard]','[icon-Ufo]','[icon-Sweating]','[icon-Karate]','[icon-Hypster]','[icon-Hypnotized]','[icon-Headache]','[icon-In-Love]','[icon-Quiet]','[icon-Shy]'],
+      iconList2: ['icon-Nird','icon-Ninja','icon-Pirate','icon-LOL','icon-Money-Eye','icon-Layer-1','icon-Kiss','icon-Layer-','icon-Laugh-Hard','icon-Ufo','icon-Sweating','icon-Karate','icon-Hypster','icon-Hypnotized','icon-Headache','icon-In-Love','icon-Quiet','icon-Shy'],
+      iconListIf: false,
       nickname: '',
       uid: '',
       headimg: '',
@@ -106,16 +127,11 @@ export default {
     }
   },
   methods: {
-    throttle(func,wait){
-      let pre = 0;
-      return function(){
-        let now = Date.now();
-        if(now - pre > wait){
-          func();
-          pre = now;
-        }else{
-          this.$message.warning('点那么快干嘛~');
-        }
+    showIconList(){
+      if(this.iconListIf){
+        this.iconListIf = false;
+      }else{
+        this.iconListIf = true;
       }
     },
     changeAddList(){
@@ -129,6 +145,9 @@ export default {
       this.showCreateGroupPage = false;
     },
     hiddenAddList(e){
+      if(this.iconListIf){
+        this.iconListIf = false;
+      }
       if(e.currentTarget.className !== 'add-list' && this.showAddList){
         this.showAddList = false;
       }
@@ -347,21 +366,38 @@ export default {
       }
       this.createGroupName = '';
     },
+    selectIcon(iconName){
+      let ipt = document.getElementById('ipt');
+      let index = 0;
+      index = getPosition(ipt);
+      iconName = '[' + iconName + ']'
+      this.msg = this.msg.slice(0,index) + iconName + this.msg.slice(index);
+      ipt.focus();
+    },
     send(e){
       if(!this.msg && !e.shiftKey){
         e.preventDefault();
         return;
       }
       if(!e.shiftKey){
+        let changemsg = this.msg;
+        this.iconList1.forEach(e=>{
+          if(this.msg.includes(e)){
+            let str = '<i style="width:20px;height:20px;font-size:20px;" class="iconfont ' + e.slice(1,e.length - 1) + '"></i>';
+            changemsg = changemsg.split(e).join(str)
+          }
+        })
         e.preventDefault();
         if(this.otherNickname){
+          let msg = this.msg
           let sendMsg = {
             type: 4,
-            msg: this.msg,
+            msg: changemsg,
             nickname: this.nickname,
             uid: this.uid,
             headimg: this.headimg,
-            bridge: [this.uid + '',this.otheruid + '']
+            bridge: [this.uid + '',this.otheruid + ''],
+            color: this.fontColor
           }
           this.msg = ``;
           this.$http.post('http://localhost:3000/api/checkFriend',{
@@ -390,12 +426,13 @@ export default {
         }else if(this.group){
           let sendMsg = {
             type: 6,
-            msg: this.msg,
+            msg: changemsg,
             nickname: this.nickname,
             uid: this.uid + '',
             headimg: this.headimg,
             group: this.group,
-            gid: this.gid + ''
+            gid: this.gid + '',
+            color: this.fontColor
           }
           this.msg = ``;
           if(this.ws.readyState === 1){
@@ -433,6 +470,14 @@ export default {
         this.otherNickname = '';
         this.otheruid = '';
       }
+      let groups = this.groups.map(e=>e.nickname);
+      let index = groups.indexOf(groupObj.nickname);
+      if(this.nameBlink[index] === 'name-blink'){
+        this.$set(this.nameBlink,index,'');
+      }
+      if(!this.nameBlink.includes('name-blink')){
+        this.blink2 = '';
+      }
       this.group = groupObj.nickname;
       this.gid = groupObj.gid + '';
       setTimeout(() => {
@@ -444,7 +489,7 @@ export default {
     }
   },
   created() {
-    this.chatStyle = `background: url('../../static/img/chat-back.jpg');background-size: cover;`;
+    // this.chatStyle = `background: url('../../static/img/chat-back.jpg');background-size: cover;`;
   },
   mounted() {
     if(!this.$route.params.nickname){
@@ -538,13 +583,15 @@ export default {
           this.messages[obj.bridge[1]].push({
             nickname: obj.nickname,
             msg: obj.msg,
-            headimg: obj.headimg
+            headimg: obj.headimg,
+            color: obj.color
           });
         }else{
           this.messages[obj.uid].push({
             nickname: obj.nickname,
             msg: obj.msg,
-            headimg: obj.headimg
+            headimg: obj.headimg,
+            color: obj.color
           });
         }
         setTimeout(() => {
@@ -559,6 +606,15 @@ export default {
           console.log(obj.msg);
         }
       }else if(obj.type === 6){
+        console.log(this.group)
+        if(this.group !== obj.group && obj.nickname !== this.nickname){
+          let groups = this.groups.map(e=>e.nickname);
+          let index = groups.indexOf(obj.group);
+          this.$set(this.nameBlink,index,'name-blink');
+          if(this.blink2 === ''){
+            this.blink2 = 'blink';
+          }
+        }
         let gid = obj.gid;
         this.messages[gid].push({
           msg: obj.msg,
@@ -566,7 +622,8 @@ export default {
           uid: obj.uid,
           headimg: obj.headimg,
           group: obj.group,
-          gid: obj.gid
+          gid: obj.gid,
+          color: obj.color
         });
         setTimeout(() => {
           let msgs = document.getElementsByClassName('msg');
@@ -753,6 +810,30 @@ export default {
           border-bottom: 1px solid white;
           display: flex;
           flex-direction: column;
+          position: relative;
+          .icon-list{
+            box-sizing: border-box;
+            width: 320px;
+            height: 200px;
+            border: 1px solid #C0C0C0;
+            border-radius: 10px;
+            border-bottom-left-radius: 0;
+            background: #F0F0F0;
+            position: absolute;
+            bottom: 5px;
+            left: 25px;
+            z-index: 3;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            i{
+              width: 25px;
+              height: 25px;
+              margin: 10px;
+              font-size: 25px;
+              cursor: pointer;
+            }
+          }
           .chat-obj{
             height: 50px;
             line-height: 50px;
@@ -783,13 +864,16 @@ export default {
                 span{
                   box-sizing: border-box;
                   max-width: 70%;
-                  border: 2px solid rgba(0, 0, 0, 0.555);
+                  border: 2px solid rgba(255, 255, 255, 0.555);
                   border-radius: 10px;
-                  display: inline-block;
-                  padding: 5px 10px 0 10px;
+                  display: flex;
+                  flex-wrap: wrap;
+                  justify-content: flex-start;
+                  padding: 5px 10px;
                   margin-top: 10px;
                   text-align: left;
-                  white-space: pre;
+                  white-space: pre-wrap;
+                  word-break: break-all;
                   position: relative;
                   top: 10px;
                   user-select: text;

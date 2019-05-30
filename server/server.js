@@ -623,7 +623,8 @@ let server = ws.createServer(conn=>{
                 nickname: obj.nickname,
                 uid: obj.uid + '',
                 headimg: obj.headimg,
-                bridge: obj.bridge
+                bridge: obj.bridge,
+                color: obj.color
             });
         }else if(obj.type === 0){
             let tag = 0;
@@ -693,7 +694,8 @@ let server = ws.createServer(conn=>{
                 uid: obj.uid + '',
                 headimg: obj.headimg,
                 group: obj.group,
-                gid: obj.gid
+                gid: obj.gid,
+                color: obj.color
             });
         }else if(obj.type === 7){
             let uid = obj.uid;

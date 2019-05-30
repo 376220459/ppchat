@@ -8,7 +8,7 @@
         <div v-show="show" class="list">
             <div class="list-data" v-for="(item, index) in nodeArr" :key="index" @click="clickData(item)">
                 <img v-if="item.headimg" :src="item.headimg" alt="" :class="headImgClasses[index]">
-                {{ item.nickname }}
+                <span :class="nameBlink[index]">{{ item.nickname }}</span>
             </div>
         </div>
     </div>
@@ -17,7 +17,7 @@
 <script>
 export default {
     name: 'Tree',
-    props: ['name','nodeArr','headImgClasses','blink'],
+    props: ['name','nodeArr','headImgClasses','blink','nameBlink'],
     data() {
         return {
             show: false,
@@ -110,6 +110,14 @@ export default {
                     50% {left: 1px;top: 1px}
                     75% {left: 0;top: 0px}
                     100% {left: -1px;top: -1px}
+                }
+                .name-blink{
+                    opacity: 1;
+                    animation: nameblink 0.3s linear infinite alternate;
+                }
+                @keyframes nameblink{
+                    from {opacity: 1}
+                    to {opacity: 0}
                 }
             }
             .list-data:hover{

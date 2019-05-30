@@ -34,9 +34,9 @@ export default {
         this.pre = now;
       }
       if(this.nickname.trim().length == 0){
-        this.$message.error('不急，您还没有输入 UserId');
+        this.$message.warning('不急，您还没有输入 UserId');
       }else if(this.password.trim().length == 0){
-        this.$message.error('不急，您还没有输入 PassWord');
+        this.$message.warning('不急，您还没有输入 PassWord');
       }else{
         this.$http.post('http://localhost:3000/api/login',{
           nickname: this.nickname,
@@ -118,6 +118,7 @@ export default {
     }, 0);
     if(this.$route.params.nickname){
       this.nickname = this.$route.params.nickname;
+      console.log(this.nickname)
     }
   }
 }

@@ -169,11 +169,7 @@ app
                             }else{
                                 str = nickname + '-' + uid + '-' + headimg;
                             }
-                            
-                            // console.log(friends);
                             sql.query(sqlStr2,[str,self],(err,results)=>{
-                                // console.log(results);
-                                // console.log(str + '---' + self)
                                 if(err){
                                     res.json({
                                         status: 0,
@@ -494,9 +490,6 @@ function broadcast(obj){
             }
         });
     }
-    // server.connections.forEach(conn=>{
-    //     conn.sendText(JSON.stringify(obj));
-    // })
 }
 
 function getDate(){
@@ -598,13 +591,6 @@ let server = ws.createServer(conn=>{
                 uid: obj.uid
             });
         }else if(obj.type === 3){
-            // if(!(bridge[obj.bridge[0] + '-' + obj.bridge[1]])){
-            // }
-            // for (const key in bridge) {
-            //     if (key.split('-')[0] === obj.bridge[1]) {
-            //         bridge[key] = undefined;
-            //     }
-            // }
             bridge[obj.bridge[0] + '-' + obj.bridge[1]] = {};
             bridge[obj.bridge[0] + '-' + obj.bridge[1]][obj.uid] = conn;
             broadcast({
@@ -679,12 +665,6 @@ let server = ws.createServer(conn=>{
                     }
                 }
             })
-            // allGroups[e.nickname].members = 
-            // broadcast({
-            //     type: 5,
-            //     date: getDate(),
-            //     msg: '群内成员建立连接'
-            // });
         }else if(obj.type === 6){
             broadcast({
                 type: 6,

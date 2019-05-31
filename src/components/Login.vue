@@ -2,7 +2,7 @@
   <div class="login" :style="loginStyle">
     <div class="container" :style="containerStyle">
       <img src="../../static/img/login.png" alt="login">
-      <input type="text" placeholder="UserId" v-model="nickname">
+      <input type="text" placeholder="UserName" v-model="nickname">
       <input type="password" placeholder="PassWord" v-model="password" @keydown.enter="login">
       <button @click="login" onclick="">Go</button>
     </div>
@@ -17,8 +17,8 @@ export default {
     return {
       loginStyle: '',
       containerStyle: '',
-      nickname: '王少华',
-      password: '376220459',
+      nickname: '',
+      password: '',
       uid: '',
       headimg: '',
       pre: 0
@@ -34,7 +34,7 @@ export default {
         this.pre = now;
       }
       if(this.nickname.trim().length == 0){
-        this.$message.warning('不急，您还没有输入 UserId');
+        this.$message.warning('不急，您还没有输入 UserName');
       }else if(this.password.trim().length == 0){
         this.$message.warning('不急，您还没有输入 PassWord');
       }else{
@@ -86,9 +86,9 @@ export default {
                     }
                   }
                 }else if(res.data.message === '密码错误'){
-                  this.$message.warning('UserId 或 PassWord输入错误，三思而后行');
+                  this.$message.warning('用户名或密码输入错误，三思而后行');
                 }else{
-                  this.$message.warning('此 UserId还没有注册哦，快去注册吧~');
+                  this.$message.warning('此用户还没有注册哦，快去注册吧~');
                 }
             }else{
               this.$message.warning('服务器开小差了，休息一会吧~');

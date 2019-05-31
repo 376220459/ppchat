@@ -3,7 +3,7 @@
         <div :class="title + blink" @click="changeList">
             <i class="iconfont icon-xiangyou" v-show="!show"></i>
             <i class="iconfont icon-xiangxia" v-show="show"></i>
-            {{ name }}
+            <span style="color:	#696969">{{ name }}<span style="font-size:20px;color:#A9A9A9">（{{ nodeArr.length }}）</span></span>
         </div>
         <div v-show="show" class="list">
             <div class="list-data" v-for="(item, index) in nodeArr" :key="index" @click="clickData(item)">

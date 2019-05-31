@@ -18,8 +18,8 @@
           <img :src="headimg" alt="">
           <span>{{ nickname }}</span>
         </div>
-        <tree name='联系人' :node-arr='friends' @chat='chat' :head-img-classes='headImgClasses' :blink='blink' name-blink="[]"></tree>
-        <tree name='群' :node-arr='groups' @chat='chatGroup' :blink='blink2' :name-blink="nameBlink"></tree>
+        <tree name='Friends' :node-arr='friends' @chat='chat' :head-img-classes='headImgClasses' :blink='blink' name-blink="[]"></tree>
+        <tree name='Groups' :node-arr='groups' @chat='chatGroup' :blink='blink2' :name-blink="nameBlink"></tree>
         <i class="add-button iconfont icon-add" @click.stop="changeAddList"></i>
         <div class="add-list" v-if="showAddList" @click.stop>
           <div @click="showAddPage('friend')"><i class="iconfont icon-tianjiahaoyou"></i>添加好友</div>
@@ -67,7 +67,6 @@
         <div class="chat-content-input">
           <div class="tools">
             <i class="iconfont icon-biaoqing" @click.stop="showIconList"></i>
-            <i class="iconfont icon-tupian"></i>
             <el-color-picker v-model="fontColor"></el-color-picker>
           </div>
           <textarea v-model="msg" :style="{color:fontColor}" @keydown.enter="send" id="ipt"></textarea>
@@ -101,8 +100,8 @@ export default {
       blink2: '',
       nameBlink: [],
       iconfontClass: 'iconfont ',
-      iconList1: ['[icon-Nird]','[icon-Ninja]','[icon-Pirate]','[icon-LOL]','[icon-Money-Eye]','[icon-Layer-1]','[icon-Kiss]','[icon-Layer-]','[icon-Laugh-Hard]','[icon-Ufo]','[icon-Sweating]','[icon-Karate]','[icon-Hypster]','[icon-Hypnotized]','[icon-Headache]','[icon-In-Love]','[icon-Quiet]','[icon-Shy]'],
-      iconList2: ['icon-Nird','icon-Ninja','icon-Pirate','icon-LOL','icon-Money-Eye','icon-Layer-1','icon-Kiss','icon-Layer-','icon-Laugh-Hard','icon-Ufo','icon-Sweating','icon-Karate','icon-Hypster','icon-Hypnotized','icon-Headache','icon-In-Love','icon-Quiet','icon-Shy'],
+      iconList1: ['[icon-Nird]','[icon-Ninja]','[icon-Pirate]','[icon-LOL]','[icon-Money-Eye]','[icon-Layer-1]','[icon-Kiss]','[icon-Layer-]','[icon-Laugh-Hard]','[icon-Ufo]','[icon-Sweating]','[icon-Karate]','[icon-Hypster]','[icon-Hypnotized]','[icon-Headache]','[icon-In-Love]','[icon-Quiet]','[icon-Shy]','[icon-Angel]','[icon-Big-Eye]','[icon-Yelling]','[icon-X-Eye]','[icon-Wow]','[icon-Wondering]','[icon-Wink]','[icon-Thoung-Out]','[icon-Wierd-1]','[icon-Wierd-]','[icon-Vomiting]','[icon-Strait]','[icon-Sunglass]','[icon-Smile]','[icon-Sleeping]','[icon-Skull]','[icon-Flute]'],
+      iconList2: ['icon-Nird','icon-Ninja','icon-Pirate','icon-LOL','icon-Money-Eye','icon-Layer-1','icon-Kiss','icon-Layer-','icon-Laugh-Hard','icon-Ufo','icon-Sweating','icon-Karate','icon-Hypster','icon-Hypnotized','icon-Headache','icon-In-Love','icon-Quiet','icon-Shy','icon-Angel','icon-Big-Eye','icon-Yelling','icon-X-Eye','icon-Wow','icon-Wondering','icon-Wink','icon-Thoung-Out','icon-Wierd-1','icon-Wierd-','icon-Vomiting','icon-Strait','icon-Sunglass','icon-Smile','icon-Sleeping','icon-Skull','icon-Flute'],
       iconListIf: false,
       nickname: '',
       uid: '',
@@ -383,7 +382,7 @@ export default {
         let changemsg = this.msg;
         this.iconList1.forEach(e=>{
           if(this.msg.includes(e)){
-            let str = '<i style="width:20px;height:20px;font-size:20px;" class="iconfont ' + e.slice(1,e.length - 1) + '"></i>';
+            let str = '<i style="width:20px;height:20px;font-size:20px;color:#DAA520;font-weight:bold;" class="iconfont ' + e.slice(1,e.length - 1) + '"></i>';
             changemsg = changemsg.split(e).join(str)
           }
         })
@@ -442,7 +441,6 @@ export default {
       }
     },
     chat(otherObj){
-      // console.log(otherNickname.nickname)
       if(this.group){
         this.group = '';
         this.gid = '';
@@ -458,6 +456,11 @@ export default {
       this.otherNickname = otherObj.nickname;
       this.otheruid = otherObj.uid + '';
       setTimeout(() => {
+        if(groupObj.nickname !== this.otherNickname || groupObj.nickname !== this.group){
+          this.msg = '';
+        }
+        let ipt = document.getElementById('ipt');
+        ipt.focus();
         let msgs = document.getElementsByClassName('msg');
         if(msgs[msgs.length - 1]){
           msgs[msgs.length - 1].scrollIntoView();
@@ -465,7 +468,6 @@ export default {
       }, 0);
     },
     chatGroup(groupObj){
-      // console.log(otherNickname.nickname)
       if(this.otherNickname){
         this.otherNickname = '';
         this.otheruid = '';
@@ -481,15 +483,17 @@ export default {
       this.group = groupObj.nickname;
       this.gid = groupObj.gid + '';
       setTimeout(() => {
+        if(groupObj.nickname !== this.otherNickname || groupObj.nickname !== this.group){
+          this.msg = '';
+        }
+        let ipt = document.getElementById('ipt');
+        ipt.focus();
         let msgs = document.getElementsByClassName('msg');
         if(msgs[msgs.length - 1]){
           msgs[msgs.length - 1].scrollIntoView();
         }
       }, 0);
     }
-  },
-  created() {
-    // this.chatStyle = `background: url('../../static/img/chat-back.jpg');background-size: cover;`;
   },
   mounted() {
     if(!this.$route.params.nickname){
@@ -654,7 +658,6 @@ export default {
     }
   },
   beforeRouteLeave(to, from, next){
-    // console.log(to)
     if(to.name === 'Login' && this.nickname){
       next(false);
     }else{
@@ -736,8 +739,6 @@ export default {
         width: 400px;
         padding: 60px;
         padding-top: 120px;
-        // background: url(../../static/img/list-back.jpg);
-        // background-size: cover;
         background: #D8D8D8;
         position: relative;
         .self-inf{
@@ -755,6 +756,7 @@ export default {
           }
           span{
             font-size: 30px;
+            color:	#F0F8FF
           }
         }
         .add-button{
@@ -814,7 +816,7 @@ export default {
           .icon-list{
             box-sizing: border-box;
             width: 320px;
-            height: 200px;
+            height: 230px;
             border: 1px solid #C0C0C0;
             border-radius: 10px;
             border-bottom-left-radius: 0;
@@ -831,7 +833,12 @@ export default {
               height: 25px;
               margin: 10px;
               font-size: 25px;
+              color: 	#DAA520;
+              font-weight:bold;
               cursor: pointer;
+            }
+            i:hover{
+              transform: scale(1.1);
             }
           }
           .chat-obj{
@@ -906,7 +913,7 @@ export default {
                   color: #aaaaaa;
                 }
                 .span-msg{
-                  background: pink;
+                  background: #FFF0F5;
                   color: white;
                 }
               }

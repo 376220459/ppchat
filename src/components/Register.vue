@@ -3,7 +3,7 @@
     <div class="container" :style="containerStyle">
       <!-- <img src="../../static/img/register.png" alt="login"> -->
       <img :src="imgSrc" alt="login" title="点击切换头像" @click="changeHeadImg" :style="{opacity: imgOpacity}">
-      <input type="text" placeholder="UserId" v-model="nickname">
+      <input type="text" placeholder="UserName" v-model="nickname">
       <input type="password" placeholder="PassWord" v-model="password" @keydown.enter="register">
       <button @click="register">Register</button>
     </div>
@@ -23,8 +23,8 @@ export default {
       nickname: '',
       password: '',
       imgOpacity: 1,
-      imgSrc: '../../static/headImg/head000.jpg',
-      imgIndex: 0
+      imgSrc: '',
+      imgIndex: Math.floor(Math.random() * 10 + 0)
     }
   },
   methods: {
@@ -38,13 +38,13 @@ export default {
     },
     register(){
       if(this.nickname.trim().length == 0){
-        this.$message.warning('不急，您还没有输入 UserId');
+        this.$message.warning('不急，您还没有输入用户名');
       }else if(this.password.trim().length == 0){
-        this.$message.warning('不急，您还没有输入 PassWord');
+        this.$message.warning('不急，您还没有输入密码');
       }else if(!/^[\u4e00-\u9fa5a-zA-Z0-9]{1,9}$/.test(this.nickname)){
-        this.$message.warning('别乱起名字，UserId 由 1~9 位英文、汉字或数字组成，不能有空格哦');
+        this.$message.warning('别乱起名字，用户名 由 1~9 位英文、汉字或数字组成，不能有空格哦');
       }else if(!/^[+-.a-zA-Z0-9]{4,16}$/.test(this.password)){
-        this.$message.warning('密码不规范哦，PassWord 由 4~16 位英文、数字或+-.组成');
+        this.$message.warning('密码不规范哦，密码 由 4~16 位英文、数字或+-.组成');
       }else{
         this.loading = true;
         this.$http.post('http://localhost:3000/api/register',{
@@ -70,7 +70,7 @@ export default {
                   }, 1500);
                 }else{
                   this.loading = false;
-                  this.$message.warning('此 UserId已被抢注，发挥你的才智再想一个吧~');
+                  this.$message.warning('此用户名已被抢注，发挥你的才智再想一个吧~');
                 }
             }else{
               this.loading = false;
@@ -91,7 +91,6 @@ export default {
         if(this.imgIndex === 10){
           this.imgIndex = 0;
         }
-        console.log(this.imgIndex)
         this.imgSrc = '../../static/headImg/head00' + this.imgIndex + '.jpg';
         this.imgOpacity = 1;
       }, 500);
@@ -101,6 +100,7 @@ export default {
       this.registerStyle = `background: url('../../static/img/register-back.jpeg');background-size: cover;`;
   },
   mounted() {
+    this.imgSrc = '../../static/headImg/head00' + this.imgIndex + '.jpg';
     setTimeout(() => {
       this.containerStyle = 'transform: rotateY(0deg)';
     }, 0);

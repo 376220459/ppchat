@@ -17,7 +17,7 @@
     "express": "^4.17.0",
     "moment": "^2.24.0",
     "mysql": "^2.17.1",
-    "node-sass": "^4.12.0",
+    "node-sass": "^7.0.0",
     "nodejs-websocket": "^1.7.2",
     "vue": "^2.5.2",
     "vue-router": "^3.0.1"
